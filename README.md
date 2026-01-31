@@ -24,59 +24,61 @@ A production-ready, high-performance transaction indexer for Solana's DLN (Debri
 
 ```mermaid
 graph TB
-    subgraph "Data Sources"
-        SOL[Solana Blockchain<br/>DLN Program]
-        JUP[Jupiter API v6<br/>Price Feed]
-    end
+   subgraph "Data Sources"
+      SOL[Solana Blockchain<br/>DLN Program]
+      JUP[Jupiter API v6<br/>Price Feed]
+   end
 
-    subgraph "Indexing Layer"
-        IDX1[Indexer<br/>Historical Backfill]
-        IDX2[Indexer<br/>Real-time WebSocket]
-        SOL --> IDX1
-        SOL --> IDX2
-    end
+   subgraph "Indexing Layer"
+      IDX1[Indexer<br/>Historical Backfill]
+      IDX2[Indexer<br/>Real-time WebSocket]
+      SOL --> IDX1
+      SOL --> IDX2
+   end
 
-    subgraph "Message Queue"
-        RMQ[RabbitMQ<br/>Transaction Queue]
-        IDX1 --> RMQ
-        IDX2 --> RMQ
-    end
+   subgraph "Message Queue"
+      RMQ[RabbitMQ<br/>Transaction Queue]
+      IDX1 --> RMQ
+      IDX2 --> RMQ
+   end
 
-    subgraph "Processing Layer"
-        WRK[Worker Service<br/>Tx Processing + Enrichment]
-        RMQ --> WRK
-        JUP --> WRK
-    end
+   subgraph "Processing Layer"
+      WRK[Worker Service<br/>Tx Processing + Enrichment]
+      RMQ --> WRK
+      JUP --> WRK
+   end
 
-    subgraph "Data Layer"
-        CH[(ClickHouse OLAP<br/>Materialized Views)]
-        WRK --> CH
-    end
+   subgraph "Data Layer"
+      CH[(ClickHouse OLAP<br/>Materialized Views)]
+      WRK --> CH
+   end
 
-    subgraph "API Layer"
-        API[Fastify REST API<br/>+ Swagger Docs]
-        CH --> API
-    end
+   subgraph "API Layer"
+      API[Fastify REST API<br/>+ Swagger Docs]
+      CH --> API
+   end
 
-    subgraph "Cache Layer"
-        REDIS[(Redis<br/>Query Cache + State)]
-        API <--> REDIS
-        IDX1 <--> REDIS
-        IDX2 <--> REDIS
-        WRK <--> REDIS
-    end
+   subgraph "Cache Layer"
+      REDIS[(Redis<br/>Query Cache + State)]
+      API <--> REDIS
+      IDX1 <--> REDIS
+      IDX2 <--> REDIS
+      WRK <--> REDIS
+   end
 
-    subgraph "Frontend"
-        WEB[Nuxt 3 Dashboard<br/>Vue 3 + ECharts]
-        API --> WEB
-    end
+   subgraph "Frontend"
+      WEB[Nuxt 3 Dashboard<br/>Vue 3 + ECharts]
+      API --> WEB
+   end
 
-    style SOL fill:#e1f5ff
-    style CH fill:#fff3e0
-    style REDIS fill:#ffebee
-    style RMQ fill:#f3e5f5
-    style WEB fill:#e8f5e9
+   style SOL fill:#e1f5ff
+   style CH fill:#fff3e0
+   style REDIS fill:#ffebee
+   style RMQ fill:#f3e5f5
+   style WEB fill:#e8f5e9
 ```
+
+> 📖 For detailed architecture documentation, see [ARCHITECTURE.md](ARCHITECTURE.md)
 
 ## Quick Start
 
@@ -123,16 +125,21 @@ graph TB
 
    **Alternative:** Start services individually
    ```bash
-   # Terminal 1: Indexer
-   pnpm --filter @incur-data/indexer dev
+   # Terminal 1: Indexer (DLN Source Program)
+   pnpm --filter @incur-data/indexer dev:src
+   # Runs on port 8081, indexes src5qyZHqTqecJV4aY6Cb6zDZLMDzrDKKezs22MPHr4
 
-   # Terminal 2: Worker
+   # Terminal 2: Indexer (DLN Destination Program)
+   pnpm --filter @incur-data/indexer dev:dst
+   # Runs on port 8082, indexes dst5MGcFPoBeREFAA5E3tU5ij8m5uVYwkzkSAbsLbNo
+
+   # Terminal 3: Worker
    pnpm --filter @incur-data/worker dev
 
-   # Terminal 3: API
+   # Terminal 4: API
    pnpm --filter @incur-data/api dev
 
-   # Terminal 4: Web Dashboard
+   # Terminal 5: Web Dashboard
    pnpm --filter @incur-data/web dev
    ```
 
@@ -189,7 +196,7 @@ docker-compose down
 incur-data/
 ├── apps/
 │   ├── api/                 # Fastify REST API with Swagger
-│   ├── indexer/             # Solana transaction discovery
+│   ├── indexer/             # Solana transaction discovery (2 instances: src & dst programs)
 │   ├── worker/              # Transaction processing pipeline
 │   └── web/                 # Nuxt 3 analytics dashboard
 ├── packages/
@@ -381,16 +388,16 @@ The dashboard uses TanStack Query for automatic data polling:
 - **Polling Interval**: 30 seconds for all analytics endpoints
 - **Background Updates**: Data refreshes even when browser tab is inactive
 - **Polled Endpoints**:
-  - `/api/v1/analytics/daily-volume-summary` - Volume chart data
-  - `/api/v1/analytics/total-stats` - Stats cards (total volume, orders, etc.)
+   - `/api/v1/analytics/daily-volume-summary` - Volume chart data
+   - `/api/v1/analytics/total-stats` - Stats cards (total volume, orders, etc.)
 
 Configuration in `apps/web/pages/index.vue`:
 ```typescript
 const POLLING_INTERVAL = 30 * 1000; // 30 seconds
 
 const volumeData = useDailyVolumeSummary(filters, {
-  refetchInterval: POLLING_INTERVAL,
-  refetchIntervalInBackground: true
+   refetchInterval: POLLING_INTERVAL,
+   refetchIntervalInBackground: true
 });
 ```
 
