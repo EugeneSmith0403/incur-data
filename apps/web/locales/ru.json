@@ -1,0 +1,76 @@
+{
+  "app": {
+    "title": "Панель аналитики объёмов DLN",
+    "subtitle": "Аналитика создания и исполнения ордеров DLN в реальном времени"
+  },
+  "stats": {
+    "totalVolume": "Общий объём",
+    "totalVolumeDesc": "Создано + Исполнено",
+    "totalOrders": "Всего ордеров",
+    "dataPoints": "точек данных",
+    "avgOrderSize": "Средний размер ордера",
+    "perOrder": "За ордер",
+    "dateRange": "Период",
+    "days": "дней"
+  },
+  "filters": {
+    "title": "Фильтры",
+    "dateRange": "Период дат",
+    "dateRangeHelp": "Выберите период для анализа данных объёма",
+    "eventType": "Тип события",
+    "eventTypeHelp": "Фильтр по событиям создания или исполнения ордеров",
+    "allEvents": "Все события",
+    "createdOrders": "Созданные ордера",
+    "fulfilledOrders": "Исполненные ордера",
+    "programId": "ID программы",
+    "programIdPlaceholder": "например, DLN1111...",
+    "programIdHelp": "Фильтр по конкретному ID программы (опционально)",
+    "applyFilters": "Применить фильтры",
+    "reset": "Сбросить",
+    "dateError": {
+      "startBeforeEnd": "Дата начала должна быть раньше даты окончания",
+      "maxRange": "Период не может превышать 365 дней"
+    }
+  },
+  "chart": {
+    "title": "Обзор объёмов: Создано vs Исполнено",
+    "loading": "Загрузка данных графика...",
+    "totalCreated": "Всего создано:",
+    "totalFulfilled": "Всего исполнено:",
+    "fulfillmentRate": "Процент исполнения:",
+    "created": "Создано",
+    "fulfilled": "Исполнено",
+    "createdVolume": "Объём созданных",
+    "fulfilledVolume": "Объём исполненных",
+    "createdOrders": "Созданные ордера:",
+    "fulfilledOrders": "Исполненные ордера:"
+  },
+  "table": {
+    "title": "Детали дневных объёмов",
+    "exportCsv": "Экспорт CSV",
+    "loading": "Загрузка данных таблицы...",
+    "headers": {
+      "date": "Дата",
+      "createdVolume": "Объём созданных",
+      "createdOrders": "Созданные ордера",
+      "fulfilledVolume": "Объём исполненных",
+      "fulfilledOrders": "Исполненные ордера",
+      "fulfillmentRate": "Процент исполнения",
+      "chainRoute": "Маршрут сетей"
+    }
+  },
+  "common": {
+    "loading": "Загрузка данных панели...",
+    "error": "Ошибка загрузки панели:",
+    "retry": "Повторить",
+    "noData": "Данные отсутствуют",
+    "noDataDesc": "Данные об объёме не найдены для выбранного периода и фильтров.",
+    "refreshData": "Обновить данные"
+  },
+  "language": {
+    "switch": "Переключить язык",
+    "en": "Английский",
+    "ru": "Русский",
+    "de": "Немецкий"
+  }
+}

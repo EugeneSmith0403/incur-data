@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <users>
+        <!-- Default user -->
+        <default>
+            <password></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+        </default>
+
+        <!-- Admin user (optional) -->
+        <admin>
+            <password_sha256_hex></password_sha256_hex>
+            <networks>
+                <ip>::1</ip>
+                <ip>127.0.0.1</ip>
+                <ip>172.16.0.0/12</ip>
+            </networks>
+            <profile>default</profile>
+            <quota>default</quota>
+        </admin>
+
+        <!-- Read-only user for applications -->
+        <readonly>
+            <password></password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>readonly</profile>
+            <quota>default</quota>
+        </readonly>
+    </users>
+
+    <quotas>
+        <default>
+            <interval>
+                <duration>3600</duration>
+                <queries>0</queries>
+                <errors>0</errors>
+                <result_rows>0</result_rows>
+                <read_rows>0</read_rows>
+                <execution_time>0</execution_time>
+            </interval>
+        </default>
+    </quotas>
+</clickhouse>

@@ -1,0 +1,251 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: incur-data
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: worker
+        image: ghcr.io/your-org/incur-data/worker:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090
+          name: metrics
+        env:
+        # Node Environment
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: NODE_ENV
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: LOG_LEVEL
+        # Solana Configuration
+        - name: SOLANA_RPC_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: SOLANA_RPC_URL
+        - name: SOLANA_COMMITMENT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: SOLANA_COMMITMENT
+        # RabbitMQ Configuration
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: RABBITMQ_URL
+        - name: RABBITMQ_QUEUE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_QUEUE_NAME
+        - name: RABBITMQ_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_RETRY_DELAY
+        - name: RABBITMQ_MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_MAX_RETRIES
+        - name: RABBITMQ_PREFETCH_COUNT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_PREFETCH_COUNT
+        # Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_URL
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: REDIS_DB
+        # ClickHouse Configuration
+        - name: CLICKHOUSE_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_URL
+        - name: CLICKHOUSE_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_DATABASE
+        - name: CLICKHOUSE_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_USERNAME
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_PASSWORD
+        # Worker Configuration
+        - name: WORKER_CONCURRENCY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_CONCURRENCY
+        - name: WORKER_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_BATCH_SIZE
+        - name: WORKER_BATCH_FLUSH_INTERVAL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_BATCH_FLUSH_INTERVAL
+        - name: WORKER_RETRY_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_RETRY_ATTEMPTS
+        - name: WORKER_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_RETRY_DELAY
+        - name: WORKER_RETRY_BACKOFF_MULTIPLIER
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_RETRY_BACKOFF_MULTIPLIER
+        - name: WORKER_MAX_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_MAX_RETRY_DELAY
+        - name: WORKER_METRICS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WORKER_METRICS_PORT
+        # Jupiter API Configuration
+        - name: JUPITER_API_URL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_API_URL
+        - name: JUPITER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: JUPITER_API_KEY
+        - name: JUPITER_PRICE_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_PRICE_ENDPOINT
+        - name: JUPITER_TIMEOUT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_TIMEOUT
+        - name: JUPITER_RETRY_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_RETRY_ATTEMPTS
+        - name: JUPITER_CACHE_TTL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_CACHE_TTL
+        - name: JUPITER_RATE_LIMIT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: JUPITER_RATE_LIMIT
+        # Metrics
+        - name: ENABLE_METRICS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: ENABLE_METRICS
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 4Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 5
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 9090
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: ghcr-secret
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: worker-hpa
+  namespace: incur-data
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: worker
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 85

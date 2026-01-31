@@ -1,0 +1,410 @@
+# Indexer for SRC program (Created events)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer-src
+  namespace: incur-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexer
+      program: src
+  template:
+    metadata:
+      labels:
+        app: indexer
+        program: src
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: indexer
+        image: ghcr.io/your-org/incur-data/indexer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: health
+        env:
+        # Node Environment
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: NODE_ENV
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: LOG_LEVEL
+        # Solana Configuration
+        - name: SOLANA_RPC_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: SOLANA_RPC_URL
+        - name: SOLANA_WSS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: SOLANA_WSS_URL
+        - name: DLN_PROGRAM_ID
+          value: "src5qyZHqTqecJV4aY6Cb6zDZLMDzrDKKezs22MPHr4"
+        # RabbitMQ Configuration
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: RABBITMQ_URL
+        - name: RABBITMQ_QUEUE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_QUEUE_NAME
+        - name: RABBITMQ_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_RETRY_DELAY
+        - name: RABBITMQ_MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_MAX_RETRIES
+        # Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_URL
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: REDIS_DB
+        # ClickHouse Configuration
+        - name: CLICKHOUSE_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_URL
+        - name: CLICKHOUSE_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_DATABASE
+        - name: CLICKHOUSE_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_USERNAME
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_PASSWORD
+        # Indexer Configuration
+        - name: INDEXER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_PORT
+        - name: INDEXER_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_BATCH_SIZE
+        - name: INDEXER_TARGET_TRANSACTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_TARGET_TRANSACTIONS
+        - name: INDEXER_GAP_TIME_HOURS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_GAP_TIME_HOURS
+        - name: INDEXER_RETRY_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_ATTEMPTS
+        - name: INDEXER_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_DELAY
+        - name: INDEXER_RETRY_BACKOFF_MULTIPLIER
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_BACKOFF_MULTIPLIER
+        - name: INDEXER_MAX_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_MAX_RETRY_DELAY
+        # WebSocket Configuration
+        - name: WS_DEDUP_TTL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_DEDUP_TTL_SECONDS
+        - name: WS_MAX_RECONNECT_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_MAX_RECONNECT_ATTEMPTS
+        - name: WS_BASE_RECONNECT_DELAY_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_BASE_RECONNECT_DELAY_MS
+        - name: WS_MAX_RECONNECT_DELAY_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_MAX_RECONNECT_DELAY_MS
+        - name: WS_HEALTH_CHECK_INTERVAL_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_HEALTH_CHECK_INTERVAL_MS
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: ghcr-secret
+
+---
+# Indexer for DST program (Fulfilled events)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: indexer-dst
+  namespace: incur-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: indexer
+      program: dst
+  template:
+    metadata:
+      labels:
+        app: indexer
+        program: dst
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        fsGroup: 1001
+      containers:
+      - name: indexer
+        image: ghcr.io/your-org/incur-data/indexer:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          name: health
+        env:
+        # Node Environment
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: NODE_ENV
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: LOG_LEVEL
+        # Solana Configuration
+        - name: SOLANA_RPC_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: SOLANA_RPC_URL
+        - name: SOLANA_WSS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: SOLANA_WSS_URL
+        - name: DLN_PROGRAM_ID
+          value: "dst5MGcFPoBeREFAA5E3tU5ij8m5uVYwkzkSAbsLbNo"
+        # RabbitMQ Configuration
+        - name: RABBITMQ_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: RABBITMQ_URL
+        - name: RABBITMQ_QUEUE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_QUEUE_NAME
+        - name: RABBITMQ_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_RETRY_DELAY
+        - name: RABBITMQ_MAX_RETRIES
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: RABBITMQ_MAX_RETRIES
+        # Redis Configuration
+        - name: REDIS_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_URL
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: REDIS_PASSWORD
+        - name: REDIS_DB
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: REDIS_DB
+        # ClickHouse Configuration
+        - name: CLICKHOUSE_URL
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_URL
+        - name: CLICKHOUSE_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_DATABASE
+        - name: CLICKHOUSE_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: CLICKHOUSE_USERNAME
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: incur-data-secrets
+              key: CLICKHOUSE_PASSWORD
+        # Indexer Configuration
+        - name: INDEXER_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_PORT
+        - name: INDEXER_BATCH_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_BATCH_SIZE
+        - name: INDEXER_TARGET_TRANSACTIONS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_TARGET_TRANSACTIONS
+        - name: INDEXER_GAP_TIME_HOURS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_GAP_TIME_HOURS
+        - name: INDEXER_RETRY_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_ATTEMPTS
+        - name: INDEXER_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_DELAY
+        - name: INDEXER_RETRY_BACKOFF_MULTIPLIER
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_RETRY_BACKOFF_MULTIPLIER
+        - name: INDEXER_MAX_RETRY_DELAY
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: INDEXER_MAX_RETRY_DELAY
+        # WebSocket Configuration
+        - name: WS_DEDUP_TTL_SECONDS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_DEDUP_TTL_SECONDS
+        - name: WS_MAX_RECONNECT_ATTEMPTS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_MAX_RECONNECT_ATTEMPTS
+        - name: WS_BASE_RECONNECT_DELAY_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_BASE_RECONNECT_DELAY_MS
+        - name: WS_MAX_RECONNECT_DELAY_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_MAX_RECONNECT_DELAY_MS
+        - name: WS_HEALTH_CHECK_INTERVAL_MS
+          valueFrom:
+            configMapKeyRef:
+              name: incur-data-config
+              key: WS_HEALTH_CHECK_INTERVAL_MS
+        resources:
+          requests:
+            cpu: 500m
+            memory: 512Mi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      imagePullSecrets:
+      - name: ghcr-secret

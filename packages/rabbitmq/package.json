@@ -1,0 +1,35 @@
+{
+  "name": "@incur-data/rabbitmq",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Shared RabbitMQ utilities for queue setup and management",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules"
+  },
+  "dependencies": {
+    "@incur-data/dtos": "workspace:*",
+    "amqplib": "^0.10.3",
+    "zod": "^3.22.4",
+    "pino": "^8.17.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "@types/amqplib": "^0.10.4",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0"
+  }
+}

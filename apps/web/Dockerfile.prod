@@ -1,0 +1,102 @@
+# syntax=docker/dockerfile:1
+
+# ============================================
+# Stage 1: Dependencies
+# ============================================
+FROM node:20-alpine AS deps
+
+# Install security updates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init
+
+# Install pnpm
+RUN npm install -g pnpm@8.14.0
+
+WORKDIR /app
+
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json ./
+
+# Copy package.json files for all required packages
+COPY packages/dtos/package.json ./packages/dtos/
+COPY packages/ui/package.json ./packages/ui/
+COPY apps/web/package.json ./apps/web/
+
+# Install dependencies with frozen lockfile for reproducibility
+RUN pnpm install --frozen-lockfile --prod=false
+
+# ============================================
+# Stage 2: Builder
+# ============================================
+FROM node:20-alpine AS builder
+
+RUN npm install -g pnpm@8.14.0
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=deps /app/turbo.json ./turbo.json
+
+# Copy root tsconfig (required for packages that extend it)
+COPY tsconfig.json ./
+
+# Copy source code
+COPY packages/dtos ./packages/dtos
+COPY packages/ui ./packages/ui
+COPY apps/web ./apps/web
+
+# Build packages and web app
+RUN pnpm --filter @incur-data/dtos build && \
+    pnpm --filter @incur-data/ui build && \
+    pnpm --filter @incur-data/web build
+
+# ============================================
+# Stage 3: Production Runtime
+# ============================================
+FROM node:20-alpine AS production
+
+# Install security updates and dumb-init
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy built output from builder
+COPY --from=builder --chown=nodejs:nodejs /app/apps/web/.output ./apps/web/.output
+COPY --from=builder --chown=nodejs:nodejs /app/apps/web/package.json ./apps/web/
+
+# Copy built DTOs if needed at runtime
+COPY --from=builder --chown=nodejs:nodejs /app/packages/dtos/dist ./packages/dtos/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/dtos/package.json ./packages/dtos/
+
+# Switch to non-root user
+USER nodejs
+
+# Set working directory to web
+WORKDIR /app/apps/web
+
+# Environment variables (can be overridden at runtime)
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3001
+
+# Expose web port
+EXPOSE 3001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3001/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", ".output/server/index.mjs"]

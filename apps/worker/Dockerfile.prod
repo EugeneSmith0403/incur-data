@@ -1,0 +1,135 @@
+# syntax=docker/dockerfile:1
+
+# ============================================
+# Stage 1: Dependencies
+# ============================================
+FROM node:20-alpine AS deps
+
+# Install security updates
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init
+
+# Install pnpm
+RUN npm install -g pnpm@8.14.0
+
+WORKDIR /app
+
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json ./
+
+# Copy package.json files for all required packages
+COPY packages/dtos/package.json ./packages/dtos/
+COPY packages/olap-types/package.json ./packages/olap-types/
+COPY packages/rabbitmq/package.json ./packages/rabbitmq/
+COPY packages/tx-parsing/package.json ./packages/tx-parsing/
+COPY apps/worker/package.json ./apps/worker/
+
+# Install dependencies with frozen lockfile for reproducibility
+RUN pnpm install --frozen-lockfile --prod=false
+
+# ============================================
+# Stage 2: Builder
+# ============================================
+FROM node:20-alpine AS builder
+
+RUN npm install -g pnpm@8.14.0
+
+WORKDIR /app
+
+# Copy dependencies from deps stage
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
+COPY --from=deps /app/turbo.json ./turbo.json
+
+# Copy root tsconfig (required for packages that extend it)
+COPY tsconfig.json ./
+
+# Copy source code
+COPY packages/dtos ./packages/dtos
+COPY packages/olap-types ./packages/olap-types
+COPY packages/rabbitmq ./packages/rabbitmq
+COPY packages/tx-parsing ./packages/tx-parsing
+COPY apps/worker ./apps/worker
+
+# Build packages and worker
+RUN pnpm --filter @incur-data/dtos build && \
+    pnpm --filter @incur-data/olap-types build && \
+    pnpm --filter @incur-data/rabbitmq build && \
+    pnpm --filter @incur-data/tx-parsing build && \
+    pnpm --filter @incur-data/worker build
+
+# ============================================
+# Stage 3: Production Dependencies
+# ============================================
+FROM node:20-alpine AS prod-deps
+
+RUN npm install -g pnpm@8.14.0
+
+WORKDIR /app
+
+# Copy workspace files
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY turbo.json ./
+
+# Copy package.json files
+COPY packages/dtos/package.json ./packages/dtos/
+COPY packages/olap-types/package.json ./packages/olap-types/
+COPY packages/rabbitmq/package.json ./packages/rabbitmq/
+COPY packages/tx-parsing/package.json ./packages/tx-parsing/
+COPY apps/worker/package.json ./apps/worker/
+
+# Install only production dependencies
+RUN pnpm install --frozen-lockfile --prod
+
+# ============================================
+# Stage 4: Production Runtime
+# ============================================
+FROM node:20-alpine AS production
+
+# Install security updates and dumb-init
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+WORKDIR /app
+
+# Copy built artifacts from builder
+COPY --from=builder --chown=nodejs:nodejs /app/packages/dtos/dist ./packages/dtos/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/dtos/package.json ./packages/dtos/
+COPY --from=builder --chown=nodejs:nodejs /app/packages/olap-types/dist ./packages/olap-types/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/olap-types/package.json ./packages/olap-types/
+COPY --from=builder --chown=nodejs:nodejs /app/packages/rabbitmq/dist ./packages/rabbitmq/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/rabbitmq/package.json ./packages/rabbitmq/
+COPY --from=builder --chown=nodejs:nodejs /app/packages/tx-parsing/dist ./packages/tx-parsing/dist
+COPY --from=builder --chown=nodejs:nodejs /app/packages/tx-parsing/package.json ./packages/tx-parsing/
+COPY --from=builder --chown=nodejs:nodejs /app/apps/worker/dist ./apps/worker/dist
+COPY --from=builder --chown=nodejs:nodejs /app/apps/worker/package.json ./apps/worker/
+
+# Copy production node_modules
+COPY --from=prod-deps --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=prod-deps --chown=nodejs:nodejs /app/packages ./packages
+COPY --from=prod-deps --chown=nodejs:nodejs /app/package.json ./package.json
+
+# Switch to non-root user
+USER nodejs
+
+# Set working directory to worker
+WORKDIR /app/apps/worker
+
+# Environment variables (can be overridden at runtime)
+ENV NODE_ENV=production
+
+# Health check - check if worker process is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3002/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => process.exit(0))" || exit 0
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start the application
+CMD ["node", "dist/index.js"]

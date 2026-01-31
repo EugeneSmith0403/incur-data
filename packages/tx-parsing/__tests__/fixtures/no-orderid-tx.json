@@ -1,0 +1,51 @@
+{
+  "blockTime": 1704069000,
+  "meta": {
+    "err": null,
+    "fee": 5000,
+    "innerInstructions": [],
+    "logMessages": [
+      "Program DLNProg11111111111111111111111111111111111 invoke [1]",
+      "Program log: Instruction: UpdateConfig",
+      "Program log: Config updated successfully",
+      "Program DLNProg11111111111111111111111111111111111 consumed 10000 of 200000 compute units",
+      "Program DLNProg11111111111111111111111111111111111 success"
+    ],
+    "postBalances": [995000000, 250000000],
+    "postTokenBalances": [],
+    "preBalances": [1000000000, 250000000],
+    "preTokenBalances": [],
+    "rewards": [],
+    "status": {
+      "Ok": null
+    }
+  },
+  "slot": 234570000,
+  "transaction": {
+    "message": {
+      "accountKeys": [
+        {
+          "pubkey": "AdminAccount111111111111111111111111111111",
+          "signer": true,
+          "writable": true
+        },
+        {
+          "pubkey": "DLNProg11111111111111111111111111111111111",
+          "signer": false,
+          "writable": false
+        }
+      ],
+      "instructions": [
+        {
+          "accounts": [0, 1],
+          "data": "7Cxt5i35jCtRz8sx",
+          "programIdIndex": 1
+        }
+      ],
+      "recentBlockhash": "7x6H4xRWkTG3vAJhvCkJDqAhU8SGyxfqVFdUvNPMvKNv"
+    },
+    "signatures": [
+      "4m7s5NiJS3JAkvgkoc18WVAsiSaci2pxB2A6ueCJP4tprA2TFg9wSyTLeYouxPBJEMzJinENTkpA52YStRW5Dia8"
+    ]
+  }
+}

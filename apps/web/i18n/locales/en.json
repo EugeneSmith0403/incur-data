@@ -1,0 +1,79 @@
+{
+  "app": {
+    "title": "DLN Volume Analytics Dashboard",
+    "subtitle": "Real-time insights into DLN order creation and fulfillment volumes"
+  },
+  "stats": {
+    "totalVolume": "Total Volume",
+    "totalVolumeDesc": "Created + Fulfilled",
+    "totalOrders": "Total Orders",
+    "dataPoints": "data points",
+    "avgOrderSize": "Avg Order Size",
+    "perOrder": "Per order",
+    "dateRange": "Date Range",
+    "days": "days"
+  },
+  "filters": {
+    "title": "Filters",
+    "dateRange": "Date range",
+    "dateRangeHelp": "Select date range to analyze volume data",
+    "eventType": "Event Type",
+    "eventTypeHelp": "Filter by order creation or fulfillment events",
+    "allEvents": "All Events",
+    "createdOrders": "Created Orders",
+    "fulfilledOrders": "Fulfilled Orders",
+    "giveChainId": "Give Chain ID",
+    "giveChainIdPlaceholder": "e.g., 7565164",
+    "giveChainIdHelp": "Filter by source chain (optional)",
+    "takeChainId": "Take Chain ID",
+    "takeChainIdPlaceholder": "e.g., 7565164",
+    "takeChainIdHelp": "Filter by destination chain (optional)",
+    "applyFilters": "Apply Filters",
+    "reset": "Reset",
+    "dateError": {
+      "startBeforeEnd": "Start date must be before end date",
+      "maxRange": "Date range cannot exceed 365 days"
+    }
+  },
+  "chart": {
+    "title": "Volume Overview: Created vs Fulfilled",
+    "loading": "Loading chart data...",
+    "totalCreated": "Total Created Volume:",
+    "totalFulfilled": "Total Fulfilled Volume:",
+    "fulfillmentRate": "Fulfillment Rate:",
+    "created": "Created",
+    "fulfilled": "Fulfilled",
+    "createdVolume": "Created Volume",
+    "fulfilledVolume": "Fulfilled Volume",
+    "createdOrders": "Created Orders:",
+    "fulfilledOrders": "Fulfilled Orders:"
+  },
+  "table": {
+    "title": "Daily Volume Details",
+    "exportCsv": "Export CSV",
+    "loading": "Loading table data...",
+    "headers": {
+      "date": "Date",
+      "createdVolume": "Created Volume",
+      "createdOrders": "Created Orders",
+      "fulfilledVolume": "Fulfilled Volume",
+      "fulfilledOrders": "Fulfilled Orders",
+      "fulfillmentRate": "Fulfillment Rate",
+      "chainRoute": "Chain Route"
+    }
+  },
+  "common": {
+    "loading": "Loading dashboard data...",
+    "error": "Error loading dashboard:",
+    "retry": "Retry",
+    "noData": "No Data Available",
+    "noDataDesc": "No volume data found for the selected date range and filters.",
+    "refreshData": "Refresh Data"
+  },
+  "language": {
+    "switch": "Switch Language",
+    "en": "English",
+    "ru": "Russian",
+    "de": "German"
+  }
+}

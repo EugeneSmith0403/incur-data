@@ -1,0 +1,412 @@
+# Production Docker Compose Configuration
+# This file uses production Dockerfiles and secure configurations
+
+services:
+  # ============================================
+  # Infrastructure Services
+  # ============================================
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: dln-rabbitmq-prod
+    restart: always
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MGMT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_DEFAULT_VHOST: ${RABBITMQ_VHOST:-/}
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: ${RABBITMQ_MEMORY_LIMIT:-0.6}
+    volumes:
+      - rabbitmq-prod-data:/var/lib/rabbitmq
+      - ./rabbitmq-config:/etc/rabbitmq
+    networks:
+      - dln-prod-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:7-alpine
+    container_name: dln-redis-prod
+    restart: always
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory ${REDIS_MAX_MEMORY:-512mb}
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis-prod-data:/data
+      - ./redis-config/redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - dln-prod-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.11-alpine
+    container_name: dln-clickhouse-prod
+    restart: always
+    ports:
+      - "${CLICKHOUSE_HTTP_PORT:-8123}:8123"
+      - "${CLICKHOUSE_NATIVE_PORT:-9000}:9000"
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DATABASE:-dln}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - clickhouse-prod-data:/var/lib/clickhouse
+      - clickhouse-prod-logs:/var/log/clickhouse-server
+      - ./clickhouse-config:/etc/clickhouse-server/config.d
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - dln-prod-network
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "localhost:8123/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 8G
+        reservations:
+          cpus: '1'
+          memory: 2G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # ============================================
+  # Application Services
+  # ============================================
+
+  # Indexer for src program
+  indexer-src:
+    build:
+      context: .
+      dockerfile: apps/indexer/Dockerfile.prod
+      args:
+        NODE_ENV: production
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE_PREFIX:-incur-data}/indexer:${IMAGE_TAG:-latest}
+    container_name: dln-indexer-src-prod
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      INDEXER_PORT: 8081
+
+      # Solana Configuration
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL}
+      SOLANA_WSS_URL: ${SOLANA_WSS_URL}
+      DLN_PROGRAM_ID: src5qyZHqTqecJV4aY6Cb6zDZLMDzrDKKezs22MPHr4
+
+      # RabbitMQ Configuration
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      RABBITMQ_QUEUE_NAME: dln_transactions
+      RABBITMQ_EXCHANGE_NAME: ${RABBITMQ_EXCHANGE_NAME:-dln_exchange}
+      RABBITMQ_RETRY_DELAY: ${RABBITMQ_RETRY_DELAY:-5000}
+      RABBITMQ_MAX_RETRIES: ${RABBITMQ_MAX_RETRIES:-3}
+
+      # Redis Configuration
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+    networks:
+      - dln-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Indexer for dst program
+  indexer-dst:
+    build:
+      context: .
+      dockerfile: apps/indexer/Dockerfile.prod
+      args:
+        NODE_ENV: production
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE_PREFIX:-incur-data}/indexer:${IMAGE_TAG:-latest}
+    container_name: dln-indexer-dst-prod
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      INDEXER_PORT: 8082
+
+      # Solana Configuration
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL}
+      SOLANA_WSS_URL: ${SOLANA_WSS_URL}
+      DLN_PROGRAM_ID: dst5MGcFPoBeREFAA5E3tU5ij8m5uVYwkzkSAbsLbNo
+
+      # RabbitMQ Configuration
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-dln_transactions}
+      RABBITMQ_EXCHANGE_NAME: ${RABBITMQ_EXCHANGE_NAME:-dln_exchange}
+      RABBITMQ_RETRY_DELAY: ${RABBITMQ_RETRY_DELAY:-5000}
+      RABBITMQ_MAX_RETRIES: ${RABBITMQ_MAX_RETRIES:-3}
+
+      # Redis Configuration
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+    networks:
+      - dln-prod-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile.prod
+      args:
+        NODE_ENV: production
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE_PREFIX:-incur-data}/worker:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      
+      # Solana Configuration
+      SOLANA_RPC_URL: ${SOLANA_RPC_URL}
+      
+      # RabbitMQ Configuration
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672
+      RABBITMQ_QUEUE_NAME: ${RABBITMQ_QUEUE_NAME:-dln_transactions}
+      RABBITMQ_EXCHANGE_NAME: ${RABBITMQ_EXCHANGE_NAME:-dln_exchange}
+      RABBITMQ_RETRY_DELAY: ${RABBITMQ_RETRY_DELAY:-5000}
+      RABBITMQ_MAX_RETRIES: ${RABBITMQ_MAX_RETRIES:-3}
+      RABBITMQ_PREFETCH_COUNT: ${RABBITMQ_PREFETCH_COUNT:-10}
+      
+      # Redis Configuration
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      
+      # ClickHouse Configuration
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-dln}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      
+      # Worker Configuration
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-10}
+      
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+    networks:
+      - dln-prod-network
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.prod
+      args:
+        NODE_ENV: production
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE_PREFIX:-incur-data}/api:${IMAGE_TAG:-latest}
+    container_name: dln-api-prod
+    restart: always
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      API_HOST: 0.0.0.0
+      
+      # ClickHouse Configuration
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE:-dln}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-default}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      
+      # Redis Configuration
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      
+      # API Configuration
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX:-100}
+      RATE_LIMIT_WINDOW: ${RATE_LIMIT_WINDOW:-60000}
+      
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      ENABLE_METRICS: ${ENABLE_METRICS:-true}
+    networks:
+      - dln-prod-network
+    deploy:
+      replicas: ${API_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile.prod
+      args:
+        NODE_ENV: production
+        NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL}
+    image: ${DOCKER_REGISTRY:-ghcr.io}/${DOCKER_IMAGE_PREFIX:-incur-data}/web:${IMAGE_TAG:-latest}
+    container_name: dln-web-prod
+    restart: always
+    ports:
+      - "${WEB_PORT:-3001}:3001"
+    depends_on:
+      - api
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3001
+      NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL:-http://api:3000}
+      
+      # Monitoring
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    networks:
+      - dln-prod-network
+    deploy:
+      replicas: ${WEB_REPLICAS:-2}
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+# ============================================
+# Volumes
+# ============================================
+volumes:
+  rabbitmq-prod-data:
+    driver: local
+  redis-prod-data:
+    driver: local
+  clickhouse-prod-data:
+    driver: local
+  clickhouse-prod-logs:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+networks:
+  dln-prod-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

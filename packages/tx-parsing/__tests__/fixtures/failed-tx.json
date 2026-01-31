@@ -1,0 +1,70 @@
+{
+  "blockTime": 1704068400,
+  "meta": {
+    "err": {
+      "InstructionError": [
+        0,
+        {
+          "Custom": 6000
+        }
+      ]
+    },
+    "fee": 5000,
+    "innerInstructions": [],
+    "logMessages": [
+      "Program DLNProg11111111111111111111111111111111111 invoke [1]",
+      "Program log: Instruction: CreateOrder",
+      "Program log: Error: Insufficient funds",
+      "Program DLNProg11111111111111111111111111111111111 consumed 15000 of 200000 compute units",
+      "Program DLNProg11111111111111111111111111111111111 failed: custom program error: 0x1770"
+    ],
+    "postBalances": [995000000, 500000000, 250000000],
+    "postTokenBalances": [],
+    "preBalances": [1000000000, 500000000, 250000000],
+    "preTokenBalances": [],
+    "rewards": [],
+    "status": {
+      "Err": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6000
+          }
+        ]
+      }
+    }
+  },
+  "slot": 234569000,
+  "transaction": {
+    "message": {
+      "accountKeys": [
+        {
+          "pubkey": "5WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAXXY",
+          "signer": true,
+          "writable": true
+        },
+        {
+          "pubkey": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+          "signer": false,
+          "writable": false
+        },
+        {
+          "pubkey": "DLNProg11111111111111111111111111111111111",
+          "signer": false,
+          "writable": false
+        }
+      ],
+      "instructions": [
+        {
+          "accounts": [0, 1, 2],
+          "data": "3Bxs4h24hBtQy9rw",
+          "programIdIndex": 2
+        }
+      ],
+      "recentBlockhash": "8x7H5xRWkTG3vAJhvCkJDqAhU8SGyxfqVFdUvNPMvKNw"
+    },
+    "signatures": [
+      "2k6s4MhIS2IAkvgkoc17VVAriRzbi1oxA1A5udBIP3snrZ1SFf8wRxSKdYntxOAIDLyIhmdLSjnA41XRsQV4Dhz6"
+    ]
+  }
+}

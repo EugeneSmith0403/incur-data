@@ -1,0 +1,79 @@
+{
+  "app": {
+    "title": "DLN-Volumen-Analyse-Dashboard",
+    "subtitle": "Echtzeit-Einblicke in die Erstellung und Erfüllung von DLN-Aufträgen"
+  },
+  "stats": {
+    "totalVolume": "Gesamtvolumen",
+    "totalVolumeDesc": "Erstellt + Erfüllt",
+    "totalOrders": "Gesamtaufträge",
+    "dataPoints": "Datenpunkte",
+    "avgOrderSize": "Durchschn. Auftragsgröße",
+    "perOrder": "Pro Auftrag",
+    "dateRange": "Datumsbereich",
+    "days": "Tage"
+  },
+  "filters": {
+    "title": "Filter",
+    "dateRange": "Datumsbereich",
+    "dateRangeHelp": "Wählen Sie einen Datumsbereich zur Analyse der Volumendaten",
+    "eventType": "Ereignistyp",
+    "eventTypeHelp": "Nach Auftragserstellungs- oder Erfüllungsereignissen filtern",
+    "allEvents": "Alle Ereignisse",
+    "createdOrders": "Erstellte Aufträge",
+    "fulfilledOrders": "Erfüllte Aufträge",
+    "giveChainId": "Quell-Chain-ID",
+    "giveChainIdPlaceholder": "z.B. 7565164",
+    "giveChainIdHelp": "Nach Quell-Chain filtern (optional)",
+    "takeChainId": "Ziel-Chain-ID",
+    "takeChainIdPlaceholder": "z.B. 7565164",
+    "takeChainIdHelp": "Nach Ziel-Chain filtern (optional)",
+    "applyFilters": "Filter anwenden",
+    "reset": "Zurücksetzen",
+    "dateError": {
+      "startBeforeEnd": "Startdatum muss vor Enddatum liegen",
+      "maxRange": "Datumsbereich darf 365 Tage nicht überschreiten"
+    }
+  },
+  "chart": {
+    "title": "Volumenübersicht: Erstellt vs Erfüllt",
+    "loading": "Diagrammdaten werden geladen...",
+    "totalCreated": "Gesamt erstellt:",
+    "totalFulfilled": "Gesamt erfüllt:",
+    "fulfillmentRate": "Erfüllungsrate:",
+    "created": "Erstellt",
+    "fulfilled": "Erfüllt",
+    "createdVolume": "Erstelltes Volumen",
+    "fulfilledVolume": "Erfülltes Volumen",
+    "createdOrders": "Erstellte Aufträge:",
+    "fulfilledOrders": "Erfüllte Aufträge:"
+  },
+  "table": {
+    "title": "Tägliche Volumendetails",
+    "exportCsv": "CSV exportieren",
+    "loading": "Tabellendaten werden geladen...",
+    "headers": {
+      "date": "Datum",
+      "createdVolume": "Erstelltes Volumen",
+      "createdOrders": "Erstellte Aufträge",
+      "fulfilledVolume": "Erfülltes Volumen",
+      "fulfilledOrders": "Erfüllte Aufträge",
+      "fulfillmentRate": "Erfüllungsrate",
+      "chainRoute": "Chain-Route"
+    }
+  },
+  "common": {
+    "loading": "Dashboard-Daten werden geladen...",
+    "error": "Fehler beim Laden des Dashboards:",
+    "retry": "Wiederholen",
+    "noData": "Keine Daten verfügbar",
+    "noDataDesc": "Keine Volumendaten für den ausgewählten Datumsbereich und Filter gefunden.",
+    "refreshData": "Daten aktualisieren"
+  },
+  "language": {
+    "switch": "Sprache wechseln",
+    "en": "Englisch",
+    "ru": "Russisch",
+    "de": "Deutsch"
+  }
+}

@@ -1,0 +1,41 @@
+{
+  "name": "@incur-data/tx-parsing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Transaction parsing utilities for DLN transactions",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "eslint src",
+    "type-check": "tsc --noEmit",
+    "clean": "rm -rf dist node_modules",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.29.0",
+    "@coral-xyz/borsh": "^0.29.0",
+    "@debridge-finance/solana-transaction-parser": "^2.0.0",
+    "@incur-data/dtos": "workspace:*",
+    "@solana/web3.js": "^1.87.6",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bn.js": "^5.2.0",
+    "@types/node": "^20.10.6",
+    "@vitest/coverage-v8": "^1.2.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

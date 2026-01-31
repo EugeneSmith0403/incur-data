@@ -1,0 +1,93 @@
+<?xml version="1.0"?>
+<clickhouse>
+    <!-- Custom ClickHouse configuration for DLN -->
+    
+    <!-- Logging -->
+    <logger>
+        <level>information</level>
+        <console>1</console>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>1000M</size>
+        <count>10</count>
+    </logger>
+
+    <!-- Network -->
+    <listen_host>0.0.0.0</listen_host>
+    <http_port>8123</http_port>
+    <tcp_port>9000</tcp_port>
+
+    <!-- Memory -->
+    <max_server_memory_usage_to_ram_ratio>0.9</max_server_memory_usage_to_ram_ratio>
+    <max_concurrent_queries>100</max_concurrent_queries>
+
+    <!-- Merge settings for ReplacingMergeTree -->
+    <merge_tree>
+        <max_suspicious_broken_parts>5</max_suspicious_broken_parts>
+        <parts_to_delay_insert>150</parts_to_delay_insert>
+        <parts_to_throw_insert>300</parts_to_throw_insert>
+        <max_replicated_merges_in_queue>16</max_replicated_merges_in_queue>
+        
+        <!-- Allow nullable key for raw_events table -->
+        <allow_nullable_key>1</allow_nullable_key>
+    </merge_tree>
+
+    <!-- Query settings -->
+    <profiles>
+        <default>
+            <max_memory_usage>10000000000</max_memory_usage>
+            <use_uncompressed_cache>0</use_uncompressed_cache>
+            <load_balancing>random</load_balancing>
+            
+            <!-- Enable final by default for ReplacingMergeTree -->
+            <final>1</final>
+            
+            <!-- Optimize for aggregations -->
+            <max_rows_to_group_by>100000000</max_rows_to_group_by>
+            <group_by_overflow_mode>any</group_by_overflow_mode>
+            
+            <!-- JSON output settings -->
+            <output_format_json_quote_64bit_integers>0</output_format_json_quote_64bit_integers>
+            <output_format_json_quote_denormals>1</output_format_json_quote_denormals>
+        </default>
+
+        <readonly>
+            <readonly>1</readonly>
+        </readonly>
+    </profiles>
+
+    <!-- Users will be loaded from users.xml -->
+    <users_config>users.xml</users_config>
+
+    <!-- Data compression -->
+    <compression>
+        <case>
+            <min_part_size>10000000000</min_part_size>
+            <min_part_size_ratio>0.01</min_part_size_ratio>
+            <method>lz4</method>
+        </case>
+    </compression>
+
+    <!-- Distributed DDL -->
+    <distributed_ddl>
+        <path>/clickhouse/task_queue/ddl</path>
+    </distributed_ddl>
+
+    <!-- Query cache -->
+    <query_cache>
+        <max_size_in_bytes>1073741824</max_size_in_bytes>
+        <max_entries>1000</max_entries>
+        <max_entry_size_in_bytes>1048576</max_entry_size_in_bytes>
+    </query_cache>
+
+    <!-- Mark cache -->
+    <mark_cache_size>5368709120</mark_cache_size>
+
+    <!-- Uncompressed cache -->
+    <uncompressed_cache_size>8589934592</uncompressed_cache_size>
+
+    <!-- Background pool sizes -->
+    <background_pool_size>16</background_pool_size>
+    <background_move_pool_size>8</background_move_pool_size>
+    <background_schedule_pool_size>16</background_schedule_pool_size>
+</clickhouse>

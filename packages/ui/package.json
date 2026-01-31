@@ -1,0 +1,51 @@
+{
+  "name": "@incur-data/ui",
+  "version": "1.0.0",
+  "description": "Shared UI component library for incur-data",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./dist/style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "vite build --watch",
+    "build": "vite build && vue-tsc --declaration --emitDeclarationOnly --skipLibCheck",
+    "type-check": "vue-tsc --noEmit --skipLibCheck",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "clean": "rm -rf dist storybook-static node_modules"
+  },
+  "dependencies": {
+    "vue": "^3.4.15"
+  },
+  "devDependencies": {
+    "@storybook/addon-essentials": "^7.6.7",
+    "@storybook/addon-interactions": "^7.6.7",
+    "@storybook/addon-links": "^7.6.7",
+    "@storybook/blocks": "^7.6.7",
+    "@storybook/testing-library": "^0.2.2",
+    "@storybook/vue3": "^7.6.7",
+    "@storybook/vue3-vite": "^7.6.7",
+    "@tailwindcss/forms": "^0.5.11",
+    "@types/node": "^20.10.6",
+    "@vitejs/plugin-vue": "^5.0.3",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "storybook": "^7.6.7",
+    "tailwindcss": "^3",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vue-tsc": "^2.0.0"
+  },
+  "peerDependencies": {
+    "vue": "^3.4.0"
+  }
+}

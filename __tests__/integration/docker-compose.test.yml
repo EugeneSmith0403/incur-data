@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.8
+    container_name: incur-data-test-clickhouse
+    hostname: clickhouse-test
+    ports:
+      - "8124:8123"  # HTTP interface on different port for tests
+      - "9001:9000"  # Native interface on different port for tests
+    environment:
+      CLICKHOUSE_DB: test_db
+      CLICKHOUSE_USER: test_user
+      CLICKHOUSE_PASSWORD: test_password
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+    volumes:
+      - ./test-clickhouse-data:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - incur-test-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: incur-data-test-redis
+    hostname: redis-test
+    ports:
+      - "6380:6379"  # Different port for tests
+    command: redis-server --requirepass test_redis_password
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "test_redis_password", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - incur-test-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: incur-data-test-rabbitmq
+    hostname: rabbitmq-test
+    ports:
+      - "5673:5672"   # AMQP port on different port for tests
+      - "15673:15672" # Management UI on different port for tests
+    environment:
+      RABBITMQ_DEFAULT_USER: test_user
+      RABBITMQ_DEFAULT_PASS: test_password
+      RABBITMQ_DEFAULT_VHOST: test_vhost
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - incur-test-network
+
+networks:
+  incur-test-network:
+    driver: bridge
